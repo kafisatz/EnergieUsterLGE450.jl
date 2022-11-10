@@ -4,10 +4,11 @@ using EnergieUsterLGE450
 
 sfi = normpath(joinpath(pathof(EnergieUsterLGE450),"..","..","sampledata","baud2400_20221108_2115.txt"))
 sfi = normpath(joinpath(pathof(EnergieUsterLGE450),"..","..","sampledata","baud2400_20221108_2215.txt"))
-sfi = normpath(joinpath(pathof(EnergieUsterLGE450),"..","..","sampledata","baud2400_longer.txt"))
 sfi = normpath(joinpath(pathof(EnergieUsterLGE450),"..","..","sampledata","baud2400_stopbits2.txt"))
 sfi = normpath(joinpath(pathof(EnergieUsterLGE450),"..","..","sampledata","baud2400_02xpythonformatter.txt"))
 sfi = normpath(joinpath(pathof(EnergieUsterLGE450),"..","..","sampledata","baud2400_evenlonger.txt"))
+sfi = normpath(joinpath(pathof(EnergieUsterLGE450),"..","..","sampledata","baud2400_incremental.txt"))
+sfi = normpath(joinpath(pathof(EnergieUsterLGE450),"..","..","sampledata","baud2400_longer.txt"))
 @show sfi
 @assert isfile(sfi)
 
@@ -21,11 +22,11 @@ start_marker = hex2bytes("7ea0")
 mk = findall(bytes2hex(start_marker),dta)
 length(mk)
 
-sevenEs = findall(isequal(hex2bytes("7e")[1]),bytes)
-i = sevenEs[2]
-rs = map(i->bytes[i:i+1],sevenEs)
-di = countmap(rs)
-df = DataFrame(keys=collect(keys(di)),freq=collect(values(di)))
+sevenEs = findall(isequal(hex2bytes("7e")[1]),bytes);
+i = sevenEs[2];
+rs = map(i->bytes[i:i+1],sevenEs);
+di = countmap(rs);
+df = DataFrame(keys=collect(keys(di)),freq=collect(values(di)));
 sort!(df,:freq,rev=true)
 marker_candidate = df[1,:keys]
 
