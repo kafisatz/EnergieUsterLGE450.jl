@@ -1,16 +1,27 @@
 using Revise
-using StatsBase;using DataFrames; using Pkg;using CSV
+using StatsBase;using DataFrames; using Pkg;using CSV;using Dates;
 using EnergieUsterLGE450
 
 #pi@pi4:~/nbsm $ journalctl -u python3-smartmeter-datacollector > my_sps_log.log
 sfi = normpath(joinpath(pathof(EnergieUsterLGE450),"..","..","sampledata","scslog1.log"))
-sfi = normpath(joinpath(pathof(EnergieUsterLGE450),"..","..","sampledata","scslog2.log"))
+sfi = normpath(joinpath(pathof(EnergieUsterLGE450),"..","..","sampledata","scslog_unencrypted.log"))
+sfi = normpath(joinpath(pathof(EnergieUsterLGE450),"..","..","sampledata","scslog_unencrypted6.log"))
 @show sfi
 @assert isfile(sfi)
 
-dta00 = readlines(sfi);
-filter!(x->endswith(x,"7E"),dta00);
+dta00complete0 = readlines(sfi);
+dta00complete = dta00complete0[7195:7195]
+dta00complete = dta00complete0
+
+dta00 = filter(x->endswith(x,"7E"),dta00complete);
 idx = map(x->findlast(": ",x)[2],dta00);
+ts = sort(unique(map(x->x[1:15],dta00)))
+dfmt = DateFormat("u d HH:MM:SS")
+@info("Year does not seem included in timestamp....") 
+# journalctl -o options allow for more detailed output though!
+# journalctl -u python3-smartmeter-datacollector
+# journalctl -u python3-smartmeter-datacollector -o json-pretty
+DateTime.(ts,dfmt) 
 dta0 = map(i->dta00[i][idx[i]+1:end],1:length(idx));
 unique!(dta0);
 
@@ -84,12 +95,17 @@ unique!(dta)
 ########################################################################
 dfframes = DataFrame(bytevector=dta)
 dfframes[!,:string] = bytes2hex.(dta)
+dfframes[!,:string2] = space_delimited_hex_string.(uppercase.(bytes2hex.(dta)))
 @assert all(isequal(0x7e),map(x->x[1],dfframes.bytevector))
 @assert all(isequal(0xa0),map(x->x[2],dfframes.bytevector))
 lenv = map(x->Int(x[3]),dta)
 ending_bytes = map(i->dta[i][lenv[i]+2],1:length(lenv))
 dfframes[!,:length] = lenv
-@assert length(unique(lenv)) == 1
+
+########################################################################
+#keep only entries where indicated length matches actual length 
+########################################################################
+filter!(x->length(x.bytevector) == x.length + 2,dfframes)
 ########################################################################
 #sort
 ########################################################################
@@ -108,3 +124,5 @@ add_columns_hex!(dfframes_bytes)
 
 CSV.write(raw"C:\temp\dfframes_int.csv",dfframes_int)
 CSV.write(raw"C:\temp\dfframes_bytes.csv",dfframes_bytes)
+
+#CSV.write(raw"C:\temp\dfframes.csv",dfframes)
